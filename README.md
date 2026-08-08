@@ -115,6 +115,7 @@ tail -f "$HOME/Library/Logs/Insta360MicProCapture/agent.log"
 ```
 
 `watch`をターミナルで直接実行した場合は、同じログがそのターミナルへ出ます。
+Mic Proのマウント時は`MOUNTED`、取り外し時は`UNMOUNTED`を、コピーや文字起こしの完了を待たずに表示します。
 
 ## 状態確認と再開
 

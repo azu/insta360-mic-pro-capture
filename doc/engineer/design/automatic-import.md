@@ -141,7 +141,7 @@ Sources/
 
 ## マウント検知
 
-`watch`は、`NSWorkspace.shared.notificationCenter`の`didMountNotification`を監視する。通知を受け取る前からMic Proが接続されている場合に備えて、起動時には`FileManager.mountedVolumeURLs`でもマウント済みボリュームを列挙する。
+`watch`は、`NSWorkspace.shared.notificationCenter`の`didMountNotification`と`didUnmountNotification`を監視する。通知を受け取る前からMic Proが接続されている場合に備えて、起動時には`FileManager.mountedVolumeURLs`でもマウント済みボリュームを列挙する。マウントと取り外しのログはコピー・文字起こし処理から分離し、処理中でも通知を受け取った時点で表示する。
 
 マウントパスが`/Volumes/MIC PRO`であることだけではMic Proと断定しない。次の条件を組み合わせる。
 
@@ -424,6 +424,7 @@ macOSではリムーバブルボリュームがファイルアクセスのプラ
 
 `watch`は、次のタイミングで標準出力または標準エラーへログを出す。LaunchAgentとして実行する場合は、同じ内容を`~/Library/Logs/Insta360MicProCapture/agent.log`へ保存する。
 
+- Mic Proがマウントまたは取り外されたとき。コピーや文字起こしの完了を待たずに表示する。
 - Mic Pro上の未取り込みWAVをすべてコピーし終えたとき。Mic Proを取り外せることを表示する。
 - 文字起こしとcleanupが完了したとき。保存したNDJSONのパス、レコード数、ローカルとMic Pro側のWAV処理結果を表示する。
 - コピーまたは処理に失敗し、利用者の操作が必要なとき。ジョブIDと短い理由を表示する。
@@ -438,6 +439,7 @@ macOS通知は既定で無効とし、`--notify`を指定した場合だけ、�
 WATCHING  accepted=MIC PRO
 MOUNTED   /Volumes/MIC PRO
 COPIED    count=3 volume=MIC PRO safe-to-eject=true
+UNMOUNTED /Volumes/MIC PRO
 COMPLETED 12345678 audio_260101_120000 -> captures/2026-01-01_insta360-mic-pro-12345678.ndjson (12 records)
 CLEANUP   local=deleted device=deleted
 IMPORT    discovered=3 copied=3 skipped=0 completed=3 failed=0

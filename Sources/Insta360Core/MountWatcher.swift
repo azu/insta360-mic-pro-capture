@@ -6,10 +6,14 @@ public struct VolumeRecognizer: Sendable {
 
     public init() {}
 
-    public func accepts(_ volumeURL: URL, acceptedNames: [String]) -> Bool {
-        guard acceptedNames.contains(where: {
+    public func matchesName(_ volumeURL: URL, acceptedNames: [String]) -> Bool {
+        acceptedNames.contains(where: {
             $0.compare(volumeURL.lastPathComponent, options: [.caseInsensitive]) == .orderedSame
-        }) else {
+        })
+    }
+
+    public func accepts(_ volumeURL: URL, acceptedNames: [String]) -> Bool {
+        guard matchesName(volumeURL, acceptedNames: acceptedNames) else {
             return false
         }
         let values = try? volumeURL.resourceValues(forKeys: [
@@ -23,6 +27,11 @@ public struct VolumeRecognizer: Sendable {
     }
 }
 
+public enum MountWatcherEvent: Sendable {
+    case mounted(URL)
+    case unmounted(URL)
+}
+
 private final class WorkspaceObserverToken: @unchecked Sendable {
     let value: NSObjectProtocol
     init(_ value: NSObjectProtocol) { self.value = value }
@@ -31,16 +40,29 @@ private final class WorkspaceObserverToken: @unchecked Sendable {
 public struct MountWatcher: Sendable {
     public init() {}
 
-    public func volumes() -> AsyncStream<URL> {
+    public func volumes(
+        eventHandler: @escaping @Sendable (MountWatcherEvent) -> Void = { _ in }
+    ) -> AsyncStream<URL> {
         AsyncStream { continuation in
             let center = NSWorkspace.shared.notificationCenter
-            let token = WorkspaceObserverToken(center.addObserver(
+            let mountToken = WorkspaceObserverToken(center.addObserver(
                 forName: NSWorkspace.didMountNotification,
                 object: nil,
                 queue: .main
             ) { notification in
                 if let url = notification.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL {
-                    continuation.yield(url.standardizedFileURL)
+                    let volume = url.standardizedFileURL
+                    eventHandler(.mounted(volume))
+                    continuation.yield(volume)
+                }
+            })
+            let unmountToken = WorkspaceObserverToken(center.addObserver(
+                forName: NSWorkspace.didUnmountNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let url = notification.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL {
+                    eventHandler(.unmounted(url.standardizedFileURL))
                 }
             })
 
@@ -53,10 +75,13 @@ public struct MountWatcher: Sendable {
                 options: [.skipHiddenVolumes]
             ) ?? []
             for volume in initial {
-                continuation.yield(volume.standardizedFileURL)
+                let standardizedVolume = volume.standardizedFileURL
+                eventHandler(.mounted(standardizedVolume))
+                continuation.yield(standardizedVolume)
             }
             continuation.onTermination = { _ in
-                center.removeObserver(token.value)
+                center.removeObserver(mountToken.value)
+                center.removeObserver(unmountToken.value)
             }
         }
     }

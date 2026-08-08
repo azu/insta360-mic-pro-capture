@@ -227,11 +227,29 @@ enum AutomaticCLI {
         let recognizer = VolumeRecognizer()
         let runner = JobRunner(eventHandler: printEvent)
         log("WATCHING  accepted=\(options.acceptedVolumeNames.joined(separator: ","))")
-        for await volume in watcher.volumes() {
+        let volumes = watcher.volumes { event in
+            let volume: URL
+            let label: String
+            switch event {
+            case .mounted(let mountedVolume):
+                volume = mountedVolume
+                label = "MOUNTED  "
+            case .unmounted(let unmountedVolume):
+                volume = unmountedVolume
+                label = "UNMOUNTED"
+            }
+            guard recognizer.matchesName(
+                volume,
+                acceptedNames: options.acceptedVolumeNames
+            ) else {
+                return
+            }
+            log("\(label) \(volume.path)")
+        }
+        for await volume in volumes {
             guard recognizer.accepts(volume, acceptedNames: options.acceptedVolumeNames) else {
                 continue
             }
-            log("MOUNTED   \(volume.path)")
             do {
                 let summary = try await runner.importDirectory(volume, options: options)
                 printSummary(summary)

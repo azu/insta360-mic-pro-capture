@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import FluidAudio
 import XCTest
@@ -148,6 +149,61 @@ final class AutomaticWorkflowTests: XCTestCase {
             ),
             .generic
         )
+    }
+
+    func testVolumeRecognizerMatchesAcceptedNameCaseInsensitively() {
+        let recognizer = VolumeRecognizer()
+
+        XCTAssertTrue(recognizer.matchesName(
+            URL(fileURLWithPath: "/Volumes/mic pro", isDirectory: true),
+            acceptedNames: ["MIC PRO"]
+        ))
+        XCTAssertFalse(recognizer.matchesName(
+            URL(fileURLWithPath: "/Volumes/OTHER", isDirectory: true),
+            acceptedNames: ["MIC PRO"]
+        ))
+    }
+
+    func testMountWatcherReportsEventsWithoutConsumingVolumeQueue() async throws {
+        let target = URL(
+            fileURLWithPath: "/Volumes/MIC PRO TEST \(UUID().uuidString)",
+            isDirectory: true
+        )
+        let captured = AsyncStream<MountWatcherEvent>.makeStream()
+        let watchedVolumes = MountWatcher().volumes { event in
+            captured.continuation.yield(event)
+        }
+        let center = NSWorkspace.shared.notificationCenter
+
+        center.post(
+            name: NSWorkspace.didMountNotification,
+            object: nil,
+            userInfo: [NSWorkspace.volumeURLUserInfoKey: target]
+        )
+        center.post(
+            name: NSWorkspace.didUnmountNotification,
+            object: nil,
+            userInfo: [NSWorkspace.volumeURLUserInfoKey: target]
+        )
+        try await Task.sleep(nanoseconds: 100_000_000)
+        captured.continuation.finish()
+
+        var mounted = false
+        var unmounted = false
+        for await event in captured.stream {
+            switch event {
+            case .mounted(let volume) where volume == target:
+                mounted = true
+            case .unmounted(let volume) where volume == target:
+                unmounted = true
+            default:
+                continue
+            }
+        }
+        withExtendedLifetime(watchedVolumes) {}
+
+        XCTAssertTrue(mounted)
+        XCTAssertTrue(unmounted)
     }
 
     func testPublisherDoesNotOverwriteInvalidNDJSON() async throws {
