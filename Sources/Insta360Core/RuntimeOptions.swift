@@ -37,8 +37,8 @@ public struct RuntimeOptions: Codable, Sendable, Equatable {
         transcriptionPreference: [AudioVariant] = [.processed, .orig],
         localWavPolicy: LocalWavPolicy = .delete,
         deviceWavPolicy: DeviceWavPolicy = .keep,
-        notifyWhenCopyCompletes: Bool = true,
-        notifyWhenProcessingCompletes: Bool = true
+        notifyWhenCopyCompletes: Bool = false,
+        notifyWhenProcessingCompletes: Bool = false
     ) {
         self.dataDirectory = dataDirectory.standardizedFileURL
         self.acceptedVolumeNames = acceptedVolumeNames
@@ -48,6 +48,10 @@ public struct RuntimeOptions: Codable, Sendable, Equatable {
         self.deviceWavPolicy = deviceWavPolicy
         self.notifyWhenCopyCompletes = notifyWhenCopyCompletes
         self.notifyWhenProcessingCompletes = notifyWhenProcessingCompletes
+    }
+
+    public var notificationsEnabled: Bool {
+        notifyWhenCopyCompletes || notifyWhenProcessingCompletes
     }
 }
 

@@ -87,8 +87,8 @@ struct AutomaticCLIArguments {
         var preference: [AudioVariant] = [.processed, .orig]
         var localPolicy: LocalWavPolicy = .delete
         var devicePolicy: DeviceWavPolicy = .keep
-        var notifyCopy = true
-        var notifyProcessing = true
+        var notifyCopy = false
+        var notifyProcessing = false
         var index = 0
 
         func value(after option: String) throws -> String {
@@ -150,11 +150,9 @@ struct AutomaticCLIArguments {
                 }
                 devicePolicy = parsed
                 index += 2
-            case "--no-notify-copy-complete":
-                notifyCopy = false
-                index += 1
-            case "--no-notify-processing-complete":
-                notifyProcessing = false
+            case "--notify":
+                notifyCopy = true
+                notifyProcessing = true
                 index += 1
             default:
                 throw Insta360Error.invalidArgument("不明なオプションです: \(option)")
@@ -192,7 +190,8 @@ enum AutomaticCLI {
             let job = try await JobRunner().processFile(audioURL, options: options)
             printJob(job)
         case .importDirectory(let sourceURL, let options):
-            let summary = try await JobRunner().importDirectory(sourceURL, options: options)
+            let runner = JobRunner(eventHandler: printEvent)
+            let summary = try await runner.importDirectory(sourceURL, options: options)
             printSummary(summary)
         case .watch(let options):
             try await watch(options: options)
@@ -226,24 +225,37 @@ enum AutomaticCLI {
     private static func watch(options: RuntimeOptions) async throws {
         let watcher = MountWatcher()
         let recognizer = VolumeRecognizer()
-        let runner = JobRunner()
-        print("WATCHING  accepted=\(options.acceptedVolumeNames.joined(separator: ","))")
+        let runner = JobRunner(eventHandler: printEvent)
+        log("WATCHING  accepted=\(options.acceptedVolumeNames.joined(separator: ","))")
         for await volume in watcher.volumes() {
             guard recognizer.accepts(volume, acceptedNames: options.acceptedVolumeNames) else {
                 continue
             }
-            print("MOUNTED   \(volume.path)")
+            log("MOUNTED   \(volume.path)")
             do {
                 let summary = try await runner.importDirectory(volume, options: options)
                 printSummary(summary)
             } catch {
                 fputs("FAILED    \(volume.path): \(error)\n", stderr)
+                fflush(stderr)
             }
         }
     }
 
+    private static func printEvent(_ event: JobRunnerEvent) {
+        switch event {
+        case .copyCompleted(let volumeName, let count):
+            log("COPIED    count=\(count) volume=\(volumeName) safe-to-eject=true")
+        case .jobCompleted(let job):
+            printJob(job)
+        case .failed(let id, let message):
+            fputs("FAILED    \(id.prefix(8)) error=\(message)\n", stderr)
+            fflush(stderr)
+        }
+    }
+
     private static func printSummary(_ summary: ImportSummary) {
-        print(
+        log(
             "IMPORT    discovered=\(summary.discoveredCount) copied=\(summary.copiedCount) "
                 + "skipped=\(summary.skippedCount) completed=\(summary.completedJobIDs.count) "
                 + "failed=\(summary.failedJobIDs.count)"
@@ -255,16 +267,22 @@ enum AutomaticCLI {
             " -> \($0.relativePaths.joined(separator: ",")) (\($0.recordCount) records)"
         } ?? ""
         let error = job.lastError.map { " error=\($0.message)" } ?? ""
-        print(
+        log(
             "\(job.state.rawValue.uppercased())  \(job.shortID) \(job.recording.recordingID)"
                 + publication + error
         )
-        if let cleanupError = job.cleanup.lastError {
-            print(
+        if job.state == .completed || job.cleanup.lastError != nil {
+            let cleanupError = job.cleanup.lastError.map { " error=\($0)" } ?? ""
+            log(
                 "CLEANUP   local=\(job.cleanup.localWav.rawValue) "
-                    + "device=\(job.cleanup.deviceWav.rawValue) error=\(cleanupError)"
+                    + "device=\(job.cleanup.deviceWav.rawValue)\(cleanupError)"
             )
         }
+    }
+
+    private static func log(_ message: String) {
+        print(message)
+        fflush(stdout)
     }
 
     private static func executableURL() -> URL {
@@ -294,8 +312,7 @@ enum AutomaticCLI {
       --transcription-preference <list>   default: processed,orig
       --local-wav-policy <delete|move>    default: delete
       --device-wav-policy <keep|delete-after-publish>
-      --no-notify-copy-complete
-      --no-notify-processing-complete
+      --notify                              enable macOS notifications; default: off
     """
 }
 

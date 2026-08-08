@@ -120,11 +120,8 @@ public struct LaunchAgentManager {
             "--local-wav-policy", options.localWavPolicy.rawValue,
             "--device-wav-policy", options.deviceWavPolicy.rawValue,
         ]
-        if !options.notifyWhenCopyCompletes {
-            arguments.append("--no-notify-copy-complete")
-        }
-        if !options.notifyWhenProcessingCompletes {
-            arguments.append("--no-notify-processing-complete")
+        if options.notificationsEnabled {
+            arguments.append("--notify")
         }
         return arguments
     }

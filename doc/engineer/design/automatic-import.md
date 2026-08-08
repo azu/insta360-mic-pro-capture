@@ -60,7 +60,7 @@ Mic Proらしいボリュームを検証
         ↓
 サイズとハッシュを記録し、正式なファイル名へ変更
         ↓
-「コピー完了・取り外し可能」を通知
+「コピー完了・取り外し可能」をログへ出力
         ↓
 ローカルWAVを処理キューへ追加
         ↓
@@ -422,26 +422,26 @@ macOSではリムーバブルボリュームがファイルアクセスのプラ
 
 ## 通知と状態確認
 
-次のタイミングで通知する。
+`watch`は、次のタイミングで標準出力または標準エラーへログを出す。LaunchAgentとして実行する場合は、同じ内容を`~/Library/Logs/Insta360MicProCapture/agent.log`へ保存する。
 
-- Mic Pro上の未取り込みWAVをすべてコピーし終えたとき。「コピー完了。Mic Proを取り外せます」と表示する。
-- 文字起こしがすべて完了したとき。保存したNDJSONのパスとレコード数を表示する。
-- コピーまたは処理に失敗し、利用者の操作が必要なとき。短い理由と`status`コマンドを表示する。
+- Mic Pro上の未取り込みWAVをすべてコピーし終えたとき。Mic Proを取り外せることを表示する。
+- 文字起こしとcleanupが完了したとき。保存したNDJSONのパス、レコード数、ローカルとMic Pro側のWAV処理結果を表示する。
+- コピーまたは処理に失敗し、利用者の操作が必要なとき。ジョブIDと短い理由を表示する。
 
 `--device-wav-policy delete-after-publish`であっても、コピー完了後の取り外しを妨げない。文字起こし完了前にMic Proが取り外された場合は、端末側の削除を`pending`として残し、次回のマウント時に条件を再検証して実行する。
 
-CLIだけで開始するため、通知は`NotificationService`として分離する。最初の実装ではmacOS標準の`/usr/bin/osascript`を固定メッセージで呼び出せる。通知の失敗はジョブの失敗にせず、必ずログと`status`でも確認できるようにする。
+macOS通知は既定で無効とし、`--notify`を指定した場合だけ、コピー完了、処理完了、失敗を`NotificationService`から通知する。最初の実装ではmacOS標準の`/usr/bin/osascript`を固定メッセージで呼び出す。通知の失敗はジョブの失敗にせず、ログと`status`で処理結果を確認できるようにする。
 
-`status`は、少なくとも次を表示する。
+`watch`のログは、少なくとも次を表示する。
 
 ```text
-WATCHING  mount watcher is running
-COPYING   audio_260101_120000_32bit_processed.wav 63%
-COPIED    3 files; safe to eject MIC PRO
-RUNNING   audio_260101_120000 transcription 42%
-DONE      audio_260101_120000 -> captures/2026-01-01_insta360-mic-pro-12345678.ndjson (12 records)
-CLEANUP   device WAV deletion pending; reconnect MIC PRO
-FAILED    permissionDenied: /Volumes/MIC PRO
+WATCHING  accepted=MIC PRO
+MOUNTED   /Volumes/MIC PRO
+COPIED    count=3 volume=MIC PRO safe-to-eject=true
+COMPLETED 12345678 audio_260101_120000 -> captures/2026-01-01_insta360-mic-pro-12345678.ndjson (12 records)
+CLEANUP   local=deleted device=deleted
+IMPORT    discovered=3 copied=3 skipped=0 completed=3 failed=0
+FAILED    12345678 error=permissionDenied: /Volumes/MIC PRO
 ```
 
 ## エラー処理
@@ -475,7 +475,7 @@ FAILED    permissionDenied: /Volumes/MIC PRO
 
 ## テスト方針
 
-実際のMic Proを必要としないテストでは、一時ディレクトリをマウント先として扱い、通知より後の処理を検証する。
+実際のMic Proを必要としないテストでは、一時ディレクトリをマウント先として扱い、コピー完了イベントより後の処理を検証する。
 
 - 対象ファイル名の解析と、無関係なWAVの除外。
 - `processed`優先と`orig`へのフォールバック。
@@ -506,7 +506,7 @@ FAILED    permissionDenied: /Volumes/MIC PRO
 
 - 未接続状態で`watch`を起動し、その後Mic Proを接続すると取り込みが始まる。
 - Mic Proを接続した状態で`watch`を起動しても取り込みが始まる。
-- コピー完了通知の後にMic Proを外しても文字起こしが完了する。
+- コピー完了ログの後にMic Proを外しても文字起こしが完了する。
 - コピー途中でMic Proを外し、再接続すると最初から安全にコピーし直す。
 - 同じMic Proを再接続しても新しいファイルだけを取り込む。
 - ループ録音を有効にしてMic Pro上の取り込み済みWAVを残しても、再接続時に重複処理しない。
@@ -529,7 +529,7 @@ FAILED    permissionDenied: /Volumes/MIC PRO
 
 ### 初期実装からメニューバーアプリを作る
 
-自動コピーと文字起こしの成立確認にUIは必須ではない。CLIの`status`、ログ、完了通知で運用を確認する。
+自動コピーと文字起こしの成立確認にUIは必須ではない。CLIの`status`とログで運用を確認し、必要な場合だけ`--notify`でmacOS通知を有効にする。
 
 ## 実装完了の条件
 

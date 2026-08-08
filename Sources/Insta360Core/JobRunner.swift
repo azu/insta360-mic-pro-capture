@@ -22,6 +22,12 @@ public struct ImportSummary: Sendable {
     }
 }
 
+public enum JobRunnerEvent: Sendable {
+    case copyCompleted(volumeName: String, count: Int)
+    case jobCompleted(ProcessingJob)
+    case failed(id: String, message: String)
+}
+
 public actor JobRunner {
     private let paths: ApplicationPaths
     private let store: JobStore
@@ -31,10 +37,12 @@ public actor JobRunner {
     private let discovery = RecordingDiscovery()
     private let importer = RecordingImporter()
     private let fileManager: FileManager
+    private let eventHandler: @Sendable (JobRunnerEvent) -> Void
 
     public init(
         paths: ApplicationPaths = ApplicationPaths(),
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        eventHandler: @escaping @Sendable (JobRunnerEvent) -> Void = { _ in }
     ) {
         self.paths = paths
         self.fileManager = fileManager
@@ -42,6 +50,7 @@ public actor JobRunner {
         self.transcription = TranscriptionService(paths: paths)
         self.publisher = CaptureRecordPublisher()
         self.notification = NotificationService()
+        self.eventHandler = eventHandler
     }
 
     public func importDirectory(
@@ -77,7 +86,11 @@ public actor JobRunner {
         var skippedCount = 0
         var importFailures = unstableRecordingIDs
         for recordingID in unstableRecordingIDs {
-            notification.failed("\(recordingID): ファイルがまだ変更中のためコピーを保留しました")
+            let message = "ファイルがまだ変更中のためコピーを保留しました"
+            eventHandler(.failed(id: recordingID, message: message))
+            if options.notificationsEnabled {
+                notification.failed("\(recordingID): \(message)")
+            }
         }
         for recording in recordings {
             do {
@@ -93,6 +106,7 @@ public actor JobRunner {
                         var completed = existing
                         await cleanupDeviceWAVs(job: &completed)
                         try await store.save(completed)
+                        eventHandler(.jobCompleted(completed))
                     }
                     continue
                 }
@@ -109,7 +123,11 @@ public actor JobRunner {
                     if existing.state != .completed {
                         jobsToRun.append(existing)
                     } else {
+                        var completed = existing
+                        await cleanupDeviceWAVs(job: &completed)
+                        try await store.save(completed)
                         try? removeSpoolDirectory(id: imported.id)
+                        eventHandler(.jobCompleted(completed))
                     }
                     continue
                 }
@@ -119,17 +137,20 @@ public actor JobRunner {
                 copiedCount += 1
             } catch {
                 importFailures.append(recording.id)
-                notification.failed("\(recording.id): \(error)")
+                let message = String(describing: error)
+                eventHandler(.failed(id: recording.id, message: message))
+                if options.notificationsEnabled {
+                    notification.failed("\(recording.id): \(message)")
+                }
             }
         }
 
-        if copiedCount > 0,
-           importFailures.isEmpty,
-           options.notifyWhenCopyCompletes {
-            notification.copyCompleted(
-                volumeName: sourceDirectory.lastPathComponent,
-                count: copiedCount
-            )
+        if copiedCount > 0, importFailures.isEmpty {
+            let volumeName = sourceDirectory.lastPathComponent
+            eventHandler(.copyCompleted(volumeName: volumeName, count: copiedCount))
+            if options.notifyWhenCopyCompletes {
+                notification.copyCompleted(volumeName: volumeName, count: copiedCount)
+            }
         }
 
         var completedIDs: [String] = []
@@ -252,6 +273,7 @@ public actor JobRunner {
             await cleanupLocalWAVs(job: &job)
             await cleanupDeviceWAVs(job: &job)
             try await store.save(job)
+            eventHandler(.jobCompleted(job))
             if job.options.notifyWhenProcessingCompletes {
                 notification.processingCompleted(
                     recordCount: result.recordCount,
@@ -269,7 +291,11 @@ public actor JobRunner {
             )
             job.updatedAt = Date()
             try? await store.save(job)
-            notification.failed(String(describing: error))
+            let message = String(describing: error)
+            eventHandler(.failed(id: job.id, message: message))
+            if job.options.notificationsEnabled {
+                notification.failed(message)
+            }
             throw error
         }
     }

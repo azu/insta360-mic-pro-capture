@@ -23,8 +23,7 @@ options:
   --transcription-preference <list>   default: processed,orig
   --local-wav-policy <delete|move>    default: delete
   --device-wav-policy <keep|delete-after-publish>
-  --no-notify-copy-complete
-  --no-notify-processing-complete
+  --notify                              enable macOS notifications; default: off
 ```
 
 ## ビルド
@@ -62,7 +61,7 @@ swift build -c release
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 ```
 
-同じ録音に`processed`と`orig`がある場合、既定では両方をコピーし、文字起こしには`processed`を優先します。すべての未取り込みWAVをコピーしてから文字起こしを始めるため、コピー完了通知の後はMic Proを取り外せます。
+同じ録音に`processed`と`orig`がある場合、既定では両方をコピーし、文字起こしには`processed`を優先します。すべての未取り込みWAVをコピーしてから文字起こしを始めるため、`COPIED ... safe-to-eject=true`がログへ出た後はMic Proを取り外せます。
 
 WAVはSHA-256で重複判定します。NDJSONの保存と読み直し検証が終わるまで、作業用WAVは削除しません。正常完了後の既定動作は、Mac側の作業用WAVを削除し、Mic Pro側のWAVを残す設定です。
 
@@ -109,6 +108,14 @@ chronixd-capture context \
 
 LaunchAgentの標準出力とエラーは`~/Library/Logs/Insta360MicProCapture/agent.log`へ保存します。
 
+macOS通知は既定で無効です。コピー完了・処理完了・失敗を通知でも受け取りたい場合だけ、`agent install`または`watch`へ`--notify`を指定します。ログは通知設定に関係なく出力され、次のコマンドで追跡できます。
+
+```sh
+tail -f "$HOME/Library/Logs/Insta360MicProCapture/agent.log"
+```
+
+`watch`をターミナルで直接実行した場合は、同じログがそのターミナルへ出ます。
+
 ## 状態確認と再開
 
 ジョブはコピー済み、文字起こし中、公開中、完了、失敗の各状態をJSONへ原子的に保存します。失敗したジョブは、最後に成功した処理を再実行せずに再開できます。
@@ -126,6 +133,7 @@ LaunchAgentの標準出力とエラーは`~/Library/Logs/Insta360MicProCapture/a
 --transcription-preference <list>   既定はprocessed,orig
 --local-wav-policy <delete|move>    既定はdelete
 --device-wav-policy <keep|delete-after-publish>
+--notify                            macOS通知を有効化。既定は無効
 ```
 
 `--local-wav-policy move`では、処理後のWAVを`<data-dir>/audio/insta360-mic-pro-<device-id>/YYYY/MM/DD/<recording-id>/`へ移します。ローカルWAVを直接`process`した場合は、端末IDを付けず`audio/insta360-mic-pro/`を使います。

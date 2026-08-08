@@ -256,7 +256,7 @@ final class AutomaticWorkflowTests: XCTestCase {
             "--transcription-preference", "orig,processed",
             "--local-wav-policy", "move",
             "--device-wav-policy", "delete-after-publish",
-            "--no-notify-copy-complete",
+            "--notify",
         ])
         guard case .watch(let options) = parsed.invocation else {
             return XCTFail("watch expected")
@@ -267,7 +267,16 @@ final class AutomaticWorkflowTests: XCTestCase {
         XCTAssertEqual(options.transcriptionPreference, [.orig, .processed])
         XCTAssertEqual(options.localWavPolicy, .move)
         XCTAssertEqual(options.deviceWavPolicy, .deleteAfterPublish)
-        XCTAssertFalse(options.notifyWhenCopyCompletes)
+        XCTAssertTrue(options.notifyWhenCopyCompletes)
+        XCTAssertTrue(options.notifyWhenProcessingCompletes)
+
+        let defaults = try AutomaticCLIArguments(arguments: [
+            "insta360-mic-pro-capture", "watch", "--data-dir", "/tmp/activity",
+        ])
+        guard case .watch(let defaultOptions) = defaults.invocation else {
+            return XCTFail("watch expected")
+        }
+        XCTAssertFalse(defaultOptions.notificationsEnabled)
     }
 
     func testLaunchAgentPlistStoresArgumentsWithoutShellExpansion() throws {
@@ -293,9 +302,17 @@ final class AutomaticWorkflowTests: XCTestCase {
         XCTAssertEqual(arguments[0], paths.installedExecutableURL.path)
         XCTAssertEqual(arguments[1], "watch")
         XCTAssertTrue(arguments.contains(options.dataDirectory.path))
+        XCTAssertFalse(arguments.contains("--notify"))
         XCTAssertFalse(arguments.contains(where: { $0.contains("$HOME") || $0.contains("~") }))
         XCTAssertEqual(plist["KeepAlive"] as? Bool, true)
         XCTAssertEqual(plist["RunAtLoad"] as? Bool, true)
+
+        let notifyOptions = RuntimeOptions(
+            dataDirectory: options.dataDirectory,
+            notifyWhenCopyCompletes: true,
+            notifyWhenProcessingCompletes: true
+        )
+        XCTAssertTrue(manager.programArguments(options: notifyOptions).contains("--notify"))
     }
 
     func testTranscriptionSegmentationIsDeterministic() {
