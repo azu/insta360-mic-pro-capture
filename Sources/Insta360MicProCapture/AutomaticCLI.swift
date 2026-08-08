@@ -50,12 +50,12 @@ struct AutomaticCLIArguments {
             invocation = .status
         case "retry":
             guard arguments.count == 3 else {
-                throw Insta360Error.invalidArgument("usage: insta360-wav-to-text retry <job-id>")
+                throw Insta360Error.invalidArgument("usage: insta360-mic-pro-capture retry <job-id>")
             }
             invocation = .retry(arguments[2])
         case "agent":
             guard arguments.count >= 3 else {
-                throw Insta360Error.invalidArgument("usage: insta360-wav-to-text agent <install|status|uninstall>")
+                throw Insta360Error.invalidArgument("usage: insta360-mic-pro-capture agent <install|status|uninstall>")
             }
             switch arguments[2] {
             case "install":
@@ -279,14 +279,14 @@ enum AutomaticCLI {
 
     static let usage = """
     usage:
-      insta360-wav-to-text process <audio.wav> --data-dir <path> [options]
-      insta360-wav-to-text import <directory> --data-dir <path> [options]
-      insta360-wav-to-text watch --data-dir <path> [options]
-      insta360-wav-to-text status
-      insta360-wav-to-text retry <job-id>
-      insta360-wav-to-text agent install --data-dir <path> [options]
-      insta360-wav-to-text agent status
-      insta360-wav-to-text agent uninstall
+      insta360-mic-pro-capture process <audio.wav> --data-dir <path> [options]
+      insta360-mic-pro-capture import <directory> --data-dir <path> [options]
+      insta360-mic-pro-capture watch --data-dir <path> [options]
+      insta360-mic-pro-capture status
+      insta360-mic-pro-capture retry <job-id>
+      insta360-mic-pro-capture agent install --data-dir <path> [options]
+      insta360-mic-pro-capture agent status
+      insta360-mic-pro-capture agent uninstall
 
     options:
       --accepted-volume-name <name>       repeatable; default: MIC PRO
@@ -300,7 +300,7 @@ enum AutomaticCLI {
 }
 
 @main
-struct Insta360WavToText {
+struct Insta360MicProCapture {
     static func main() async {
         do {
             try await AutomaticCLI.run(arguments: CommandLine.arguments)

@@ -12,10 +12,10 @@ public struct ApplicationPaths: Sendable {
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) {
         self.supportDirectory = (supportDirectory ?? homeDirectory
-            .appendingPathComponent("Library/Application Support/Insta360WavToText", isDirectory: true))
+            .appendingPathComponent("Library/Application Support/Insta360MicProCapture", isDirectory: true))
             .standardizedFileURL
         self.logsDirectory = (logsDirectory ?? homeDirectory
-            .appendingPathComponent("Library/Logs/Insta360WavToText", isDirectory: true))
+            .appendingPathComponent("Library/Logs/Insta360MicProCapture", isDirectory: true))
             .standardizedFileURL
         self.launchAgentsDirectory = (launchAgentsDirectory ?? homeDirectory
             .appendingPathComponent("Library/LaunchAgents", isDirectory: true))
@@ -39,7 +39,7 @@ public struct ApplicationPaths: Sendable {
     }
 
     public var installedExecutableURL: URL {
-        binDirectory.appendingPathComponent("insta360-wav-to-text", isDirectory: false)
+        binDirectory.appendingPathComponent("insta360-mic-pro-capture", isDirectory: false)
     }
 
     public var logFileURL: URL {
@@ -48,7 +48,7 @@ public struct ApplicationPaths: Sendable {
 
     public var launchAgentPlistURL: URL {
         launchAgentsDirectory.appendingPathComponent(
-            "com.github.azu.insta360-wav-to-text.plist",
+            "com.github.azu.insta360-mic-pro-capture.plist",
             isDirectory: false
         )
     }

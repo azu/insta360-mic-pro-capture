@@ -16,7 +16,7 @@ public struct LaunchAgentStatus: Sendable {
 }
 
 public struct LaunchAgentManager {
-    public static let label = "com.github.azu.insta360-wav-to-text"
+    public static let label = "com.github.azu.insta360-mic-pro-capture"
 
     private let paths: ApplicationPaths
     private let fileManager: FileManager

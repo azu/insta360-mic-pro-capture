@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "insta-360-wav-to-text",
+    name: "insta360-mic-pro-capture",
     platforms: [
         .macOS(.v14),
     ],
@@ -13,8 +13,8 @@ let package = Package(
             targets: ["Insta360Core"]
         ),
         .executable(
-            name: "insta360-wav-to-text",
-            targets: ["Insta360WavToText"]
+            name: "insta360-mic-pro-capture",
+            targets: ["Insta360MicProCapture"]
         ),
         .executable(
             name: "insta360-ja-transcribe",
@@ -35,7 +35,7 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "Insta360WavToText",
+            name: "Insta360MicProCapture",
             dependencies: [
                 "Insta360Core",
             ]
@@ -47,8 +47,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "Insta360WavToTextTests",
-            dependencies: ["Insta360Core", "Insta360WavToText"]
+            name: "Insta360MicProCaptureTests",
+            dependencies: ["Insta360Core", "Insta360MicProCapture"]
         ),
     ]
 )

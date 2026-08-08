@@ -46,7 +46,7 @@ jobs:
       - name: Package release assets
         shell: bash
         run: |
-          product_name="insta360-wav-to-text"
+          product_name="insta360-mic-pro-capture"
           archive_root="${product_name}-${GITHUB_REF_NAME}-macos-arm64"
           bin_path="$(swift build -c release --show-bin-path)"
 

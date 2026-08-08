@@ -5,7 +5,7 @@
 
 ## 結論
 
-`insta360-wav-to-text`をユーザー単位のLaunchAgentとして常駐させ、Insta360 Mic Proのマウントを検知したら、未取り込みのWAVをすべてローカルへ安全にコピーする。コピーが完了してから、ローカルのWAVをFluidAudioへ渡して文字起こしを行う。結果は`chronixd-capture`の`transcription`レコードと同じ形式へ変換し、指定したdata-dirの`captures/*.ndjson`へ保存する。
+`insta360-mic-pro-capture`をユーザー単位のLaunchAgentとして常駐させ、Insta360 Mic Proのマウントを検知したら、未取り込みのWAVをすべてローカルへ安全にコピーする。コピーが完了してから、ローカルのWAVをFluidAudioへ渡して文字起こしを行う。結果は`chronixd-capture`の`transcription`レコードと同じ形式へ変換し、指定したdata-dirの`captures/*.ndjson`へ保存する。
 
 複数のMic Proは、マウントされたFAT32ボリュームのUUIDで区別する。公開用の端末IDにはUUIDの先頭8文字を小文字で使い、NDJSON、`device`フィールド、保存するWAVのディレクトリへ同じ値を反映する。ストレージのフォーマットでUUIDが変わった場合は、別の端末IDとして扱う。
 
@@ -85,30 +85,30 @@ Mic Proに未取り込みのWAVが複数ある場合は、文字起こしより�
 
 ```sh
 # ローカルWAVを1件処理する
-insta360-wav-to-text process audio.wav \
+insta360-mic-pro-capture process audio.wav \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 
 # 指定したボリュームまたはディレクトリから1回だけ取り込む
-insta360-wav-to-text import "/Volumes/MIC PRO" \
+insta360-mic-pro-capture import "/Volumes/MIC PRO" \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 
 # マウントを監視する
-insta360-wav-to-text watch \
+insta360-mic-pro-capture watch \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 
 # ジョブの状態を一覧する
-insta360-wav-to-text status
+insta360-mic-pro-capture status
 
 # 失敗したジョブを再開する
-insta360-wav-to-text retry <job-id>
+insta360-mic-pro-capture retry <job-id>
 
 # ユーザー単位のLaunchAgentを設定・解除する
-insta360-wav-to-text agent install \
+insta360-mic-pro-capture agent install \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture" \
   --local-wav-policy delete \
   --device-wav-policy keep
-insta360-wav-to-text agent status
-insta360-wav-to-text agent uninstall
+insta360-mic-pro-capture agent status
+insta360-mic-pro-capture agent uninstall
 ```
 
 既存の`insta360-ja-transcribe`は、共通ライブラリを呼ぶ互換用コマンドとして残せる。自動取り込み処理から別のCLIを子プロセスとして起動せず、同じSwiftプロセス内のサービスを直接呼び出す。
@@ -133,8 +133,8 @@ Sources/
 │   ├── ChronixdTranscriptionRecord.swift
 │   ├── CaptureRecordPublisher.swift
 │   └── NotificationService.swift
-├── Insta360WavToText/
-│   └── main.swift
+├── Insta360MicProCapture/
+│   └── AutomaticCLI.swift
 └── Insta360JaTranscribe/
     └── main.swift
 ```
@@ -279,7 +279,7 @@ WAVの整理結果はジョブ本体の状態と分け、`cleanup.localWav`と`c
 作業用WAVはApplication Support配下のspoolへコピーする。文字起こし結果は、`--data-dir`で指定された`chronixd-capture`と同じdata-dirへ保存する。data-dirは利用者ごとに異なり、自動検出すると誤った場所へ書き込む可能性があるため、`watch`と`agent install`では指定を必須とする。
 
 ```text
-~/Library/Application Support/Insta360WavToText/spool/
+~/Library/Application Support/Insta360MicProCapture/spool/
 └── <job-id>/
     └── audio_260101_120000_32bit_processed.wav
 
@@ -324,9 +324,9 @@ WAVの整理結果はジョブ本体の状態と分け、`cleanup.localWav`と`c
 モデル、グローバルなジョブ情報、ログはdata-dirと分離する。外部の設定ファイルは作成しない。
 
 ```text
-~/Library/Application Support/Insta360WavToText/models/
-~/Library/Application Support/Insta360WavToText/jobs/
-~/Library/Logs/Insta360WavToText/agent.log
+~/Library/Application Support/Insta360MicProCapture/models/
+~/Library/Application Support/Insta360MicProCapture/jobs/
+~/Library/Logs/Insta360MicProCapture/agent.log
 ```
 
 実行時のカレントディレクトリへ依存しない。すべてのパスは、コマンド引数またはFoundationの標準ディレクトリAPIから絶対パスとして解決する。
@@ -336,7 +336,7 @@ WAVの整理結果はジョブ本体の状態と分け、`cleanup.localWav`と`c
 実行条件は設定ファイルではなくコマンド引数で指定する。`watch`を直接実行する例を示す。
 
 ```sh
-insta360-wav-to-text watch \
+insta360-mic-pro-capture watch \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture" \
   --accepted-volume-name "MIC PRO" \
   --copy-policy all \
@@ -393,7 +393,7 @@ Mic Proの設定:   Loop Recordingを利用者が有効化
 plistでは、少なくとも次を設定する。
 
 ```text
-Label: com.github.azu.insta360-wav-to-text
+Label: com.github.azu.insta360-mic-pro-capture
 ProgramArguments:
   <absolute-binary-path>
   watch
@@ -406,8 +406,8 @@ ProgramArguments:
 RunAtLoad: true
 KeepAlive: true
 ProcessType: Background
-StandardOutPath: ~/Library/Logs/Insta360WavToText/agent.log
-StandardErrorPath: ~/Library/Logs/Insta360WavToText/agent.log
+StandardOutPath: ~/Library/Logs/Insta360MicProCapture/agent.log
+StandardErrorPath: ~/Library/Logs/Insta360MicProCapture/agent.log
 ```
 
 通常は必要時に起動するLaunchAgentが望ましいが、今回は`NSWorkspace`のマウント通知を受け取る必要があるため、ユーザーのログイン中は`watch`を常駐させる。待機中はポーリングを行わず、CPUを消費しない。

@@ -1,4 +1,4 @@
-# insta-360-wav-to-text
+# insta360-mic-pro-capture
 
 Insta360 Mic ProをMacへ接続すると、WAVをローカルへ安全にコピーし、FluidAudioで日本語の文字起こしを行い、`chronixd-capture`互換のNDJSONとして保存するSwift CLIです。32-bit floatや24-bitのWAV原本は変更せず、`ffmpeg`や変換済みの一時WAVも作りません。
 
@@ -12,12 +12,12 @@ macOS 14以降とSwift 6.2以降を使います。
 swift build -c release
 ```
 
-初回の文字起こし時だけ、[FluidAudio](https://github.com/FluidInference/FluidAudio)がParakeet TDT Japaneseモデルを取得します。モデルとジョブ情報は`~/Library/Application Support/Insta360WavToText/`へ保存します。
+初回の文字起こし時だけ、[FluidAudio](https://github.com/FluidInference/FluidAudio)がParakeet TDT Japaneseモデルを取得します。モデルとジョブ情報は`~/Library/Application Support/Insta360MicProCapture/`へ保存します。
 
 ## ローカルWAVを処理する
 
 ```sh
-.build/release/insta360-wav-to-text process \
+.build/release/insta360-mic-pro-capture process \
   audio_260101_120000_32bit_processed.wav \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 ```
@@ -35,7 +35,7 @@ swift build -c release
 ## Mic Proから1回だけ取り込む
 
 ```sh
-.build/release/insta360-wav-to-text import "/Volumes/MIC PRO" \
+.build/release/insta360-mic-pro-capture import "/Volumes/MIC PRO" \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 ```
 
@@ -59,36 +59,36 @@ chronixd-capture context \
 ターミナルで監視する場合は、次を実行します。
 
 ```sh
-.build/release/insta360-wav-to-text watch \
+.build/release/insta360-mic-pro-capture watch \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture"
 ```
 
 ログイン中に自動で監視するLaunchAgentを設定する場合は、ビルド済みCLIから次を実行します。外部の設定ファイルは使わず、指定した引数を生成済みplistの`ProgramArguments`へ保存します。
 
 ```sh
-.build/release/insta360-wav-to-text agent install \
+.build/release/insta360-mic-pro-capture agent install \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture" \
   --local-wav-policy delete \
   --device-wav-policy keep
 
-.build/release/insta360-wav-to-text agent status
+.build/release/insta360-mic-pro-capture agent status
 ```
 
 解除する場合は次を実行します。
 
 ```sh
-.build/release/insta360-wav-to-text agent uninstall
+.build/release/insta360-mic-pro-capture agent uninstall
 ```
 
-LaunchAgentの標準出力とエラーは`~/Library/Logs/Insta360WavToText/agent.log`へ保存します。
+LaunchAgentの標準出力とエラーは`~/Library/Logs/Insta360MicProCapture/agent.log`へ保存します。
 
 ## 状態確認と再開
 
 ジョブはコピー済み、文字起こし中、公開中、完了、失敗の各状態をJSONへ原子的に保存します。失敗したジョブは、最後に成功した処理を再実行せずに再開できます。
 
 ```sh
-.build/release/insta360-wav-to-text status
-.build/release/insta360-wav-to-text retry <job-id>
+.build/release/insta360-mic-pro-capture status
+.build/release/insta360-mic-pro-capture retry <job-id>
 ```
 
 ## 主なオプション
@@ -131,14 +131,14 @@ git push origin v0.1.0
 Releaseには、次の2ファイルを添付します。
 
 ```text
-insta360-wav-to-text-v0.1.0-macos-arm64.tar.gz
-insta360-wav-to-text-v0.1.0-macos-arm64.tar.gz.sha256
+insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz
+insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz.sha256
 ```
 
 2ファイルを同じディレクトリへダウンロードした後、次のコマンドでアーカイブを検証できます。
 
 ```sh
-shasum -a 256 -c insta360-wav-to-text-v0.1.0-macos-arm64.tar.gz.sha256
+shasum -a 256 -c insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz.sha256
 ```
 
-アーカイブには`insta360-wav-to-text`実行ファイルとREADMEを含めます。Release本文はGitHubの自動生成を使います。現時点ではDeveloper IDによる署名とAppleのnotarizationは行いません。
+アーカイブには`insta360-mic-pro-capture`実行ファイルとREADMEを含めます。Release本文はGitHubの自動生成を使います。現時点ではDeveloper IDによる署名とAppleのnotarizationは行いません。

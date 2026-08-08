@@ -2,7 +2,7 @@ import Foundation
 import FluidAudio
 import XCTest
 @testable import Insta360Core
-@testable import Insta360WavToText
+@testable import Insta360MicProCapture
 
 final class AutomaticWorkflowTests: XCTestCase {
     func testDiscoveryGroupsVariantsAndSelectsProcessed() throws {
@@ -243,11 +243,11 @@ final class AutomaticWorkflowTests: XCTestCase {
 
     func testAutomaticCLIRequiresDataDirectoryAndParsesOptions() throws {
         XCTAssertThrowsError(try AutomaticCLIArguments(arguments: [
-            "insta360-wav-to-text", "watch",
+            "insta360-mic-pro-capture", "watch",
         ]))
 
         let parsed = try AutomaticCLIArguments(arguments: [
-            "insta360-wav-to-text",
+            "insta360-mic-pro-capture",
             "watch",
             "--data-dir", "/tmp/activity",
             "--accepted-volume-name", "MIC PRO A",
