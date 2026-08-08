@@ -88,20 +88,20 @@ chronixd-capture context \
 
 ログイン中に自動で監視するLaunchAgentを設定する場合は、ビルド済みCLIから次を実行します。外部の設定ファイルは使わず、指定した引数を生成済みplistの`ProgramArguments`へ保存します。
 
-複数のMic Proを使う場合も、各Macへインストールするagentは1つだけです。すべてのボリューム名が既定の`MIC PRO`なら、追加の指定は必要ありません。ボリューム名を変更している場合は、次のようにすべての名前を指定します。
+同じMic Proを複数のMacで使う場合は、各Macで同じ共有data-dirを指定してagentをインストールします。最初に文字起こし結果の保存と検証まで完了したMacがMic Pro側のWAVを削除するため、別のMacへ接続しても同じWAVを再処理しません。
 
 ```sh
 .build/release/insta360-mic-pro-capture agent install \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture" \
-  --accepted-volume-name "MIC PRO A" \
-  --accepted-volume-name "MIC PRO B" \
   --local-wav-policy delete \
-  --device-wav-policy keep
+  --device-wav-policy delete-after-publish
 
 .build/release/insta360-mic-pro-capture agent status
 ```
 
-複数のMacで運用する場合は、Macごとに`agent install`を1回実行します。解除は各Macで次を実行し、そのMacのagentだけを削除します。Mic Pro内のWAVや共有data-dirは削除しません。
+`delete-after-publish`でも、NDJSONの保存と読み直し検証が完了し、接続中のWAVのサイズと更新時刻が取り込み時から変わっていない場合だけ削除します。処理に失敗したWAVはMic Pro側に残します。
+
+解除は各Macで次を実行し、そのMacのagentだけを削除します。`agent uninstall`自体はMic Pro内のWAVや共有data-dirを削除しません。
 
 ```sh
 .build/release/insta360-mic-pro-capture agent uninstall
