@@ -1,8 +1,31 @@
 # insta360-mic-pro-capture
 
-Insta360 Mic ProをMacへ接続すると、WAVをローカルへ安全にコピーし、FluidAudioで日本語の文字起こしを行い、`chronixd-capture`互換のNDJSONとして保存するSwift CLIです。32-bit floatや24-bitのWAV原本は変更せず、`ffmpeg`や変換済みの一時WAVも作りません。
+Insta360 Mic ProをMacへ接続すると、WAVをローカルへ安全にコピーし、FluidAudioで日本語の文字起こしを行い、[chronixd-capture](https://github.com/azu/chronixd-capture)互換のNDJSONとして保存するSwift CLIです。32-bit floatや24-bitのWAV原本は変更せず、`ffmpeg`や変換済みの一時WAVも作りません。
 
 自動取り込みの設計と安全条件は、[automatic-import.md](doc/engineer/design/automatic-import.md)にまとめています。
+
+## Usage
+
+```text
+usage:
+  insta360-mic-pro-capture process <audio.wav> --data-dir <path> [options]
+  insta360-mic-pro-capture import <directory> --data-dir <path> [options]
+  insta360-mic-pro-capture watch --data-dir <path> [options]
+  insta360-mic-pro-capture status
+  insta360-mic-pro-capture retry <job-id>
+  insta360-mic-pro-capture agent install --data-dir <path> [options]
+  insta360-mic-pro-capture agent status
+  insta360-mic-pro-capture agent uninstall
+
+options:
+  --accepted-volume-name <name>       repeatable; default: MIC PRO
+  --copy-policy <all|selected>        default: all
+  --transcription-preference <list>   default: processed,orig
+  --local-wav-policy <delete|move>    default: delete
+  --device-wav-policy <keep|delete-after-publish>
+  --no-notify-copy-complete
+  --no-notify-processing-complete
+```
 
 ## ビルド
 
