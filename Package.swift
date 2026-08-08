@@ -16,10 +16,6 @@ let package = Package(
             name: "insta360-mic-pro-capture",
             targets: ["Insta360MicProCapture"]
         ),
-        .executable(
-            name: "insta360-ja-transcribe",
-            targets: ["Insta360JaTranscribe"]
-        ),
     ],
     dependencies: [
         .package(
@@ -38,12 +34,6 @@ let package = Package(
             name: "Insta360MicProCapture",
             dependencies: [
                 "Insta360Core",
-            ]
-        ),
-        .executableTarget(
-            name: "Insta360JaTranscribe",
-            dependencies: [
-                .product(name: "FluidAudio", package: "FluidAudio"),
             ]
         ),
         .testTarget(

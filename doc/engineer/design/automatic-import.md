@@ -111,7 +111,7 @@ insta360-mic-pro-capture agent status
 insta360-mic-pro-capture agent uninstall
 ```
 
-既存の`insta360-ja-transcribe`は、共通ライブラリを呼ぶ互換用コマンドとして残せる。自動取り込み処理から別のCLIを子プロセスとして起動せず、同じSwiftプロセス内のサービスを直接呼び出す。
+文字起こしは別のCLIを子プロセスとして起動せず、`insta360-mic-pro-capture`と同じSwiftプロセス内のサービスを直接呼び出す。
 
 外部の設定ファイルは持たない。`process`、`import`、`watch`はコマンド引数から実行条件を受け取り、`agent install`は同じ引数をLaunchAgentのplistへ保存する。
 
@@ -133,10 +133,8 @@ Sources/
 │   ├── ChronixdTranscriptionRecord.swift
 │   ├── CaptureRecordPublisher.swift
 │   └── NotificationService.swift
-├── Insta360MicProCapture/
-│   └── AutomaticCLI.swift
-└── Insta360JaTranscribe/
-    └── main.swift
+└── Insta360MicProCapture/
+    └── AutomaticCLI.swift
 ```
 
 `JobRunner`はactorとして実装し、文字起こしジョブを直列に実行する。複数のCore ML処理が同時に走ってメモリ使用量や処理時間が不安定になることを避ける。モデルは最初のジョブで遅延読み込みし、`watch`プロセスが動作している間は再利用する。

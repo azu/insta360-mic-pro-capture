@@ -88,16 +88,20 @@ chronixd-capture context \
 
 ログイン中に自動で監視するLaunchAgentを設定する場合は、ビルド済みCLIから次を実行します。外部の設定ファイルは使わず、指定した引数を生成済みplistの`ProgramArguments`へ保存します。
 
+複数のMic Proを使う場合も、各Macへインストールするagentは1つだけです。すべてのボリューム名が既定の`MIC PRO`なら、追加の指定は必要ありません。ボリューム名を変更している場合は、次のようにすべての名前を指定します。
+
 ```sh
 .build/release/insta360-mic-pro-capture agent install \
   --data-dir "$HOME/Library/CloudStorage/Dropbox/activity-capture" \
+  --accepted-volume-name "MIC PRO A" \
+  --accepted-volume-name "MIC PRO B" \
   --local-wav-policy delete \
   --device-wav-policy keep
 
 .build/release/insta360-mic-pro-capture agent status
 ```
 
-解除する場合は次を実行します。
+複数のMacで運用する場合は、Macごとに`agent install`を1回実行します。解除は各Macで次を実行し、そのMacのagentだけを削除します。Mic Pro内のWAVや共有data-dirは削除しません。
 
 ```sh
 .build/release/insta360-mic-pro-capture agent uninstall
@@ -128,14 +132,6 @@ LaunchAgentの標準出力とエラーは`~/Library/Logs/Insta360MicProCapture/a
 
 `--device-wav-policy delete-after-publish`は、NDJSONの検証後も接続されており、サイズと更新時刻が取り込み時から変わっていない個別WAVだけをMic Proから削除します。既定の`keep`ではMic Proの内容を変更しません。ストレージ全体のフォーマットや自動イジェクトは行いません。
 
-## 既存CLIとの互換性
-
-タイムスタンプ付き文字起こしJSONを作る旧コマンドは残しています。
-
-```sh
-swift run insta360-ja-transcribe audio.wav audio.transcript
-```
-
 ## テスト
 
 ```sh
@@ -147,21 +143,21 @@ swift test
 `vMAJOR.MINOR.PATCH`形式のタグをpushすると、GitHub Actionsがarm64向けのテストとリリースビルドを実行し、GitHub Releaseを作成します。
 
 ```sh
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a v1.0.0 -m "v1.0.0"
+git push origin v1.0.0
 ```
 
 Releaseには、次の2ファイルを添付します。
 
 ```text
-insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz
-insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz.sha256
+insta360-mic-pro-capture-v1.0.0-macos-arm64.tar.gz
+insta360-mic-pro-capture-v1.0.0-macos-arm64.tar.gz.sha256
 ```
 
 2ファイルを同じディレクトリへダウンロードした後、次のコマンドでアーカイブを検証できます。
 
 ```sh
-shasum -a 256 -c insta360-mic-pro-capture-v0.1.0-macos-arm64.tar.gz.sha256
+shasum -a 256 -c insta360-mic-pro-capture-v1.0.0-macos-arm64.tar.gz.sha256
 ```
 
 アーカイブには`insta360-mic-pro-capture`実行ファイルとREADMEを含めます。Release本文はGitHubの自動生成を使います。現時点ではDeveloper IDによる署名とAppleのnotarizationは行いません。
