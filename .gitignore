@@ -1,0 +1,26 @@
+.build/
+.swiftpm/
+.models/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local recordings and generated transcription data
+*.wav
+*.wave
+*.aif
+*.aiff
+*.caf
+*.mp3
+*.m4a
+*.aac
+*.flac
+*.ogg
+*.opus
+*.ndjson
+*.transcript.json
+*.transcript.md
+/audio/
+/captures/
+/spool/

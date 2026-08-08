@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and release
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must use vMAJOR.MINOR.PATCH: ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Test
+        run: swift test
+
+      - name: Build release binary
+        run: swift build -c release
+
+      - name: Package release assets
+        shell: bash
+        run: |
+          product_name="insta360-wav-to-text"
+          archive_root="${product_name}-${GITHUB_REF_NAME}-macos-arm64"
+          bin_path="$(swift build -c release --show-bin-path)"
+
+          mkdir -p "dist/${archive_root}"
+          cp "${bin_path}/${product_name}" "dist/${archive_root}/${product_name}"
+          cp README.md "dist/${archive_root}/README.md"
+          tar -C dist -czf "dist/${archive_root}.tar.gz" "${archive_root}"
+          (
+            cd dist
+            shasum -a 256 "${archive_root}.tar.gz" \
+              > "${archive_root}.tar.gz.sha256"
+          )
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/*.tar.gz \
+            dist/*.tar.gz.sha256 \
+            --verify-tag \
+            --generate-notes \
+            --title "${GITHUB_REF_NAME}"
