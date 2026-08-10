@@ -141,6 +141,10 @@ Mic Proのマウント時は`MOUNTED`、取り外し時は`UNMOUNTED`を、コ�
 
 `--device-wav-policy delete-after-publish`は、NDJSONの検証後も接続されており、サイズと更新時刻が取り込み時から変わっていない個別WAVだけをMic Proから削除します。既定の`keep`ではMic Proの内容を変更しません。ストレージ全体のフォーマットや自動イジェクトは行いません。
 
+WAV処理ポリシーは録音を最初に取り込んだときのジョブへ保存し、再開時にも引き継ぎます。そのため、`keep`で取り込んだ既存ジョブに対して後から`delete-after-publish`を指定しても、Mic Pro側のWAVは自動削除されません。`CLEANUP local=deleted device=kept`は削除失敗ではなく、保存済みの`keep`を適用した結果です。
+
+`COMPLETED`ログと保存先のNDJSONを確認した後でWAVが不要になった場合は、`watch`を停止し、Finderで`/Volumes/MIC PRO`を開いて対象のWAVだけを削除できます。[Insta360の公式マニュアル](https://onlinemanual.insta360.com/micpro/en-us/operation-tutorial/function/internal-recording)でも、送信機をコンピューターへ接続して内部録音ファイルを削除する方法が案内されています。フォーマットは送信機内の全録音を消すため、全消去する場合だけ使用してください。
+
 ## テスト
 
 ```sh
